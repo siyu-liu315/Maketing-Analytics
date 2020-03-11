@@ -7,7 +7,7 @@ Exposed to different methodology in digital marketing analysis. Topics include o
 
 # Key methodology
 
-##Advertisement effectiveness: 
+##Advertisement effectiveness##: 
 Randomization check, 
 Estimator Selection (ITT or TOT),
 Control ads validation 
