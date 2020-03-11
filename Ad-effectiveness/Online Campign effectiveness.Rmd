@@ -1,0 +1,256 @@
+---
+title: "Assignment1"
+author: "SIYU LIU(U74835706)"
+date: "2/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(skimr)
+library(lfe)
+```
+
+Randomization check by genders
+```{r Question1.1}
+f = read.csv('assignment/assignment1.csv')
+
+f$gender2 <- ifelse(f$gender =='female',1, 0)
+
+t <- f %>% filter(Treatment == 1)
+c <- f %>% filter(Treatment == 0)
+diff <- mean(t$gender2)-mean(c$gender2)
+diffre <- diff/mean(c$gender2)*100
+
+diffSE <- sqrt(sd(t$gender2)^2 / nrow(t) 
+               + sd(c$gender2)^2 / nrow(c))
+
+ciLow <- diff - 1.96*diffSE
+ciHigh <- diff + 1.96*diffSE
+
+paste('absolute difference:',diff)
+paste('relative difference(%):',diffre)
+paste('standard error:',diffSE)
+paste('lower boundary:',ciLow)
+paste('higher boundary:',ciHigh)
+```
+
+We can not reject diff  =  0 in 95% confidence interval, hence there is no significent difference of women proption between treatment group and control group. 
+
+Randomization check by past sales
+```{r Assignment 1.2}
+
+diff_pass <- mean(t$past_sales)-mean(c$past_sales)
+diffre_pass <- diff/mean(c$past_sales)*100
+
+diffSE_pass <- sqrt(sd(t$past_sales)^2 / nrow(t) 
+               + sd(c$past_sales)^2 / nrow(c))
+ciLow_pass <- diff_pass - 1.96*diffSE_pass
+ciHigh_pass <- diff_pass + 1.96*diffSE_pass
+
+paste('diffrence:',diff_pass)
+paste('relative difference(%):',diffre_pass)
+paste('standard error:',diffSE_pass)
+paste('lower boundary:',ciLow_pass)
+paste('higher boundary:',ciHigh_pass)
+
+```
+
+Still, We can not reject diff  =  0 in 95% confidence interval, hence there is no significent difference of past sales between treatment group and control group.
+
+```{r  Assignment 2}
+##3. estimate effect without control. 
+
+diff_itt <- mean(t$sales)-mean(c$sales)
+diffre_itt <- diff_itt/mean(c$sales)*100
+
+diffSE_itt <- sqrt(sd(t$sales)^2 / nrow(t) 
+               + sd(c$sales)^2 / nrow(c))
+
+ciLow_itt <- diff_itt - 1.96*diffSE_itt
+ciHigh_itt <- diff_itt + 1.96*diffSE_itt
+
+paste('diffrence:',diff_itt)
+paste('relative difference(%):',diffre_itt)
+paste('standard error:',diffSE_itt)
+paste('lower boundary:',ciLow_itt)
+paste('higher boundary:',ciHigh_itt)
+```
+
+Accoding to the regression summary, the effect is -0.001258 with standard error is  0.00927. We can not reject diff  =  0 in 95% confidence interval, hence there is we cannot say this campaign has an impact on sales.
+
+
+```{r Question3.1}
+complier <- f %>% filter(saw_ads == 1)
+
+##randomization check on gender
+t_complier <- complier %>% filter(Treatment == 1)
+c_complier <- complier %>% filter(Treatment == 0)
+diff_placebo <- mean(t_complier$gender2)-mean(c_complier$gender2)
+diffre_placebo <- diff_placebo/mean(c_complier$sales)*100
+
+diffSE_placebo <- sqrt(sd(t_complier$gender2)^2 / nrow(t_complier) 
+               + sd(c_complier$gender2)^2 / nrow(c_complier))
+
+ciLow_placebo <- diff_placebo - 1.96*diffSE_placebo
+ciHigh_placebo <- diff_placebo + 1.96*diffSE_placebo
+
+paste('diffrence:',diff_placebo)
+paste('relative difference(%):',diffre_placebo)
+paste('standard error:',diffSE_placebo)
+paste('lower boundary:',ciLow_placebo)
+paste('higher boundary:',ciHigh_placebo)
+
+```
+
+
+We can not reject diff  =  0 in 95% confidence interval, hence there is no significent difference of gender proption between treatment group and control group. 
+
+```{r Question3.2}
+diff_placebo2 <- mean(t_complier$past_sales)-mean(c_complier$past_sales)
+
+diffre_placebo2 <- diff_placebo2/mean(c_complier$past_sales)*100
+diffSE_placebo2 <- sqrt(sd(t_complier$past_sales)^2 / nrow(t_complier) 
+               + sd(c_complier$past_sales)^2 / nrow(c_complier))
+
+ciLow_placebo2 <- diff_placebo2 - 1.96*diffSE_placebo2
+ciHigh_placebo2 <- diff_placebo2 + 1.96*diffSE_placebo2
+
+paste('absolute diffrence:',diff_placebo2)
+paste('relative difference(%):',diffre_placebo2)
+paste('standard error:',diffSE_placebo2)
+paste('lower boundary:',ciLow_placebo2)
+paste('higher boundary:',ciHigh_placebo2)
+```
+
+
+We can not reject diff  =  0 in 95% confidence interval, hence there is no significent difference past sales between treatment group and control group. 
+
+```{r Question4}
+## accoding to the summary,
+diff_tot <- mean(t_complier$sales)-mean(c_complier$sales)#0.040504
+
+diffre_tot <- diff_tot/mean(c_complier$sales)*100
+diffSE_tot <- sqrt(sd(t_complier$sales)^2 / nrow(t_complier) 
+               + sd(c_complier$sales)^2 / nrow(c_complier))#0.011167
+
+ciLow_tot <- diff_tot - 1.96*diffSE_tot
+ciHigh_tot <- diff_tot + 1.96*diffSE_tot
+
+paste('absolute diffrence:',diff_tot)
+paste('relative difference(%):',diffre_tot)
+paste('standard error:',diffSE_tot)
+paste('lower boundary:',ciLow_tot)
+paste('higher boundary:',ciHigh_tot)
+```
+
+The TOT standard error is more narrowed. We can reject 0 in 95% significant level and conclude that the effect is positive. 
+
+
+```{r Question5.a}
+total_diff_itt <- diff_itt* nrow(t)
+total_diffre_itt <-diffre_itt
+
+total_diffSE_itt <- diffSE_itt * nrow(t)
+
+ciLow_totalitt <- total_diff_itt - 1.96*total_diffSE_itt
+ciHigh_totalitt <- total_diff_itt + 1.96*total_diffSE_itt
+
+paste('absolute diffrence:',total_diff_itt)
+paste('relative difference(%):',total_diffre_itt)
+paste('standard error:',total_diffSE_itt)
+paste('lower boundary:',ciLow_totalitt)
+paste('higher boundary:',ciHigh_totalitt)
+
+```
+
+```{r Question5b}
+total_diff_tot <- diff_tot* nrow(t_complier)
+total_diffre_tot <-diffre_tot
+
+total_diffSE_tot <- diffSE_tot * nrow(t_complier)
+
+ciLow_totaltot <- total_diff_tot - 1.96*total_diffSE_tot
+ciHigh_totaltot <- total_diff_tot + 1.96*total_diffSE_tot
+
+paste('absolute diffrence:',total_diff_tot)
+paste('relative difference(%):',total_diffre_tot)
+paste('standard error:',total_diffSE_tot)
+paste('lower boundary:',ciLow_totaltot)
+paste('higher boundary:',ciHigh_totaltot)
+```
+
+Question 5c
+I will report the average Treatment on Treated because it will give a more accurate results on effects of advertisment. In this case, the standard error of TOT is more narrowed. It is less noisy and help us to get more concise effects.
+
+Question 5d
+This campaign is quite success based on the positive effect on sales. We got 0.01 incremental increase per exposed user and we have 95% confidence it number is significant difference from zero. However, we still need more information to measure the profit and make the further decision like the advertisement investment. 
+
+```{r Question6}
+obs = f %>% filter(Treatment == 1)
+t_obs = obs %>% filter(saw_ads == 1)
+c_obs = obs %>% filter(saw_ads == 0)
+
+diff_obs <- mean(t_obs$sales)-mean(c_obs$sales)
+diffre_obs <- diff_obs/mean(c_obs$sales)*100
+
+diffSE_obs <- sqrt(sd(t_obs$sales)^2 / nrow(t_obs) 
+               + sd(c_obs$sales)^2 / nrow(c_obs))
+
+ciLow_obs <- diff_obs - 1.96*diffSE_obs
+ciHigh_obs <- diff_obs + 1.96*diffSE_obs
+
+paste('diffrence:',diff_obs)
+paste('relative difference(%):',diffre_obs)
+paste('standard error:',diffSE_obs)
+paste('lower boundary:',ciLow_obs)
+paste('higher boundary:',ciHigh_obs)
+```
+
+Question 6b
+Without experiment, Manager may get toally wrong conclusions because of the selection bias. In this case, the observational study will conclude a negative effects of advertisement on sales while the experiment will get the opposite conclusion.
+
+```{r Question7.a}
+
+female = f %>% filter(gender2 == 1)
+
+diff_fe <- mean(female$sales[female$Treatment == 1&female$saw_ads == 1])-
+           mean(female$sales[female$Treatment == 0&female$saw_ads == 1])
+
+diffre_fe <- diff_fe/mean(female$sales[female$Treatment == 0&female$saw_ads == 1])*100
+
+diffSE_fe <- sqrt(sd(female$sales[female$Treatment == 1&female$saw_ads == 1])^2 /sum(female$Treatment == 1) + sd(female$sales[female$Treatment == 0&female$saw_ads == 1])^2 /sum(female$Treatment == 0))
+
+ciLow_fe <- diff_fe - 1.96*diffSE_fe
+ciHigh_fe <- diff_fe + 1.96*diffSE_fe
+
+paste('diffrence:',diff_fe)
+paste('relative difference(%):',diffre_fe)
+paste('standard error:',diffSE_fe)
+paste('lower boundary:',ciLow_fe)
+paste('higher boundary:',ciHigh_fe)
+```
+
+```{r question 7b}
+male = f %>% filter(gender2 == 0)
+
+diff_ma <- mean(male$sales[male$Treatment == 1&male$saw_ads == 1])-
+           mean(male$sales[male$Treatment == 0&male$saw_ads == 1])
+diffre_ma <- diff_ma/mean(male$sales[male$Treatment == 0&male$saw_ads == 1])*100
+
+diffSE_ma <- sqrt(sd(male$sales[male$Treatment == 1&male$saw_ads == 1])^2 / sum(male$Treatment == 1) 
+               + sd(male$sales[male$Treatment == 0&male$saw_ads == 1])^2 / sum(male$Treatment == 0))
+
+ciLow_ma <- diff_ma - 1.96*diffSE_ma
+ciHigh_ma <- diff_ma + 1.96*diffSE_ma
+
+paste('diffrence:',diff_ma)
+paste('relative difference(%):',diffre_ma)
+paste('standard error:',diffSE_ma)
+paste('lower boundary:',ciLow_ma)
+paste('higher boundary:',ciHigh_ma)
+```
+
+7c
+Advertisement in female have more positive impact on sales compared to the male. In the female segmentation, the effect is 0.12 and significant difference from zero while in segemenation of male, we even can not conclude the effect is different from zero. Hence, if possible, we should target more female in our campaign.

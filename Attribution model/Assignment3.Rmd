@@ -1,0 +1,160 @@
+---
+title: "assignment3"
+author: "SIYU LIU(U74835706)"
+date: "2/19/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+options(digits = 2)
+```
+
+## Q1.1
+```{r}
+
+table = data %>%select(Groupname, Positionname) %>% 
+  filter(Positionname == 'CONVERTER'| Positionname == 'ORIGINATOR') %>% table
+
+
+percentage = prop.table(table,2)*100
+tbl= cbind(table, percentage)
+tbl1 = addmargins(tbl,1)
+colnames(tbl1) = c('converter','originator','converter_percent%',
+                    'originator_percent%')
+tbl1
+```
+
+## Q1.2
+```{r pressure, echo=FALSE}
+
+df <- as.data.frame(tbl1) 
+df1 <- df%>% mutate( 'Groupname' = row.names(df))
+graph<- df1 %>% select(Groupname,`converter_percent%`,`originator_percent%`,) %>% 
+  pivot_longer(cols = -Groupname,names_to = "total", values_to = "count" )
+
+ggplot(graph)+
+  geom_col(aes(x = Groupname, y = count, fill = total),position = 'dodge')+
+  theme(axis.text.x=element_text(angle=60,hjust=1))+
+  scale_y_continuous(name = 'Percent')+
+  ggtitle("First-click and Last-click Comparison ")+
+  scale_fill_discrete(labels = c('Last-touch','First-touch'))
+
+```
+
+
+##Q1.3
+If Winters choose to allocate their credit depends on last-click model. Some channel could be undervalued like Serach google brand, seach MSN brand.Some channel could be overvalued like BUZZ AFFILATE, CJ and CPM 
+
+##Q2.1
+```{r}
+data %>% filter(Positionname =='ORIGINATOR') %>% group_by(Newcustomer) %>% summarise(avg_daytoconvert = mean(DaysToConvert,na.rm = T))
+```
+
+###Q2.2
+```{R}
+df2 <- data %>% group_by(Orderid) %>% mutate(touch = max(Position)+1) %>% ungroup()
+df2 %>% filter(Positionname =='ORIGINATOR') %>% group_by(Newcustomer) %>% summarise(avg_touch = mean(touch,na.rm = T))
+```
+
+###Q2.3
+```{r}
+df2 %>% filter(Positionname =='ORIGINATOR') %>% group_by(Newcustomer) %>% summarise(avg_saleamount = mean(Saleamount,na.rm = T))
+```
+
+###Q2.4
+According to the calculation above, new customers will need less time to convert and the average of the touch is lower than the old customer. They also consumer more money to buy our products. 
+
+###Q3.1
+```{r}
+#df3 <- df2 %>% group_by(Orderid) %>% mutate(mean = mean(Saleamount,na.rm = T)) %>% ungroup()
+
+d3 <- df2 %>% filter(Positionname =='ORIGINATOR') %>%  group_by(Groupname) %>% summarize(total_sales = sum(Saleamount), avg_sales = mean(Saleamount)) %>% ungroup()
+
+a <- apply(d3[-1],2,sum)
+d3<- rbind(d3,data.frame(Groupname="Total",t(a)))
+
+d3
+```
+
+#Q3.2
+```{r}
+df4 <- df2 %>% filter(Positionname =='ORIGINATOR') %>% group_by(Brand, Groupname) %>% summarize(total_sales = sum(Saleamount), avg_sales = mean(Saleamount)) %>% ungroup()
+
+df4$factor = ifelse(df4$Brand =='Y',0.05,0.1)
+df4 <- df4 %>% mutate(sales_incremental = factor*total_sales)
+df4 <- df4[-4]
+
+df4 <- rbind(df4,data.frame(Brand="Total",Groupname = NA,t(apply(df4[-1:-2],2,sum))))
+
+df4
+incremental <- df4 %>%filter(Brand == 'Total') %>%  select(sales_incremental)
+incremental*0.4
+```
+The total incremental gross revenue is 12020
+
+#Q3.3
+```{r}
+sum(df4$sales_incremental[df4$factor == 0.05 ]*0.4)
+```
+
+From this calculation directly, we could say that brand search is not necessary because the incremental profit ($2945) less than the cost ($4200). 
+However, we still need further infomation to know the exact effect of stopping the brand search advertisement.e.g.Some competitor may steal incremental revanue from us if we stop the brand search. 
+
+#4.1
+```{r}
+df_q4 <- df2 %>% select(Groupname,Position, touch) %>% mutate(liner_touch = 1/touch) %>% group_by(Groupname) %>% summarise(sum = sum(liner_touch)) %>% ungroup()
+
+total_order <-  length(unique(df2$Orderid))
+
+df_q4$sum = df_q4$sum/total_order*100
+colnames(df_q4) = c("Groupname","Share_Percentage_%")
+
+df_q4 <- rbind(df_q4,colSums(df_q4[2]))
+df_q4[14,1] <- 'Total'
+df_q4
+```
+
+#4.2
+```{r}
+df_q42 <- merge(df_q4,df1)
+df_q42 <- df_q42 %>% select(Groupname,`Share_Percentage_%`, `converter_percent%`, `originator_percent%`) %>% pivot_longer(cols = `Share_Percentage_%` : `originator_percent%`,names_to = 'model',values_to = 'percentage')
+
+ggplot(df_q42)+
+  geom_col(aes(x = Groupname, y = percentage, fill = model),position = 'dodge')+
+  theme(axis.text.x = element_text(angle = 60,hjust = 1))+
+  scale_y_continuous(name = 'Percentage',limit = c(0,100))+
+  ggtitle("First-touch model, Linear model and Last-touch model Comparison ")+
+  scale_fill_discrete(labels = c('Last-touch','First-touch','Linear Model'))
+```
+
+#4.3
+In linear model, all channels take some credit. For those take less in last-touch model like search google brand and search MSN brand, linear model give them more credit compare to the last-touch. While for those take more in last-touch model, linear model may giva them less credit compare to the last-touch. 
+
+#5.1
+```{r}
+df5 <- data %>% filter(Groupname == c('BUZZ AFFILIATE','CJ', 'CPM', 'SEARCH GOOGLE BRAND', 'SEARCH GOOGLE NON-BRAND', 'SEARCH MSN BRAND', 'TV')) %>% select(Groupname, Positionname) 
+df5 %>% group_by(Groupname,Positionname) %>% summarise(count = n()) %>% ungroup() %>% pivot_wider(names_from = Positionname, values_from = count) -> df5
+
+df5[is.na(df5)] = 0
+label <- as.matrix(df5[,1])
+as.table(as.matrix(df5[-1])) ->t
+t <- addmargins(prop.table(t,1),2)*100
+rownames(t) = label
+t
+```
+
+Q5.2
+```{r}
+df5_graph <- as.data.frame(as.matrix(t)) %>% filter(Var2 != 'Sum')
+colnames(df5_graph) <- c('Groupname','Positionname','Percentage%')
+
+ggplot(df5_graph)+ 
+  geom_col(aes(x = Groupname, y = `Percentage%`,fill  = Positionname), position = 'dodge')+
+  theme(axis.text.x=element_text(angle=60,hjust=1))+
+  scale_y_continuous(limits = c(0,100))
+  
+```
+CPM seems have relative more touchpoint in assist and roster, hence it may receive less in both last-touch and first touch. Search google brand,search google non-brand and search MSN brand have relative less touch point in roster and assist compared to originator, hence they may receive less in last-touch while receive more in first-touch. BUZZ AFFILIATE, CJ and TV have less touch point in assist and roster compare to the convertor, hence they may receive more in last-touch but less in first touch. 

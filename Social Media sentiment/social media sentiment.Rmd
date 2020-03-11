@@ -1,0 +1,236 @@
+---
+title: "Assignment4"
+author: "SIYU LIU(U74835706)"
+date: "2/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(anytime)
+library(data.table)
+library(ggplot2)
+library(tidyverse)
+library(tidytext)
+library(cowplot)
+library(leaflet)
+library(rtweet)
+load("~/markting-analytics/assignmen4/Delta_social_media.RData")
+```
+
+## Q1
+ab
+```{r}
+setDT(replies)
+setDT(mentions)
+
+
+daily_replies <- replies[,.N,by = format(replies$created_at,'%Y-%m-%d')]
+daily_mention <- mentions[,.N,by = format(mentions$created_at,'%Y-%m-%d')]
+
+mean(daily_replies$N)
+mean(daily_mention$N)
+```
+The average number of daily reply is 314.86 and the average number of daily mention is 457.42
+
+```{R}
+ggplot(daily_replies)+
+  geom_line(aes(x = format, y  = N,group = 1))+
+  ylab('Total number of replies')+
+  xlab("Date")+
+  labs(title = 'Daily number of replies')
+  
+ggplot(daily_mention)+
+  geom_line(aes(x = format, y  = N,group = 1))+
+  ylab('Total number of mentions')+
+  xlab('Date')+
+  labs(title = 'Daily number of mentions')
+```
+
+## Q2
+a.
+```{r}
+mentions %>% select(user_id,followers_count) %>% unique() %>% summarise(median = median(followers_count))
+mentions %>% select(screen_name,followers_count) %>% unique() %>% arrange(desc(followers_count)) %>% head(3)
+```
+a.i
+The median number of followers in Delta's mention is 325.
+a.ii
+The screen name of user with the #3 most follower who mention delta is ajc
+
+b.
+```{r}
+mentions %>% select(favorite_count) %>% summarise(avg = mean(favorite_count), max = max(favorite_count))
+mentions$text[mentions$favorite_count == max(mentions$favorite_count)]
+```
+b.i
+The average favorite by mentions is 3.27 while the maximun favorite by mentions is 994
+
+b.ii
+The text with most favorite number by mention is "Game winning moment from 30,000 feet. Thanks \u2066@Delta\u2069 &amp; congrats \u2066@Vikings\u2069. #SKOL https://t.co/mjlHb5pAez"
+
+
+c i
+```{r}
+text <- mentions %>% filter(delta_responded ==T) %>% select(text)
+
+clean_text <- text %>% unnest_tokens(token, text, token="tweets",
+                                     to_lower = T,
+                                     strip_punct = T,
+                                     strip_url = T)
+sw =get_stopwords()
+sw = c(sw$word,'@delta','delta')
+tidy_text <- clean_text %>% filter(!token %in% sw) 
+top <- tidy_text%>% count(token,sort = T) %>% top_n(15)
+  
+ggplot(top)+
+  geom_col(aes(x = reorder(token,n),y = n))+
+  coord_flip()+
+  xlab('Token')+
+  ylab('Count')+
+  labs(title = 'Token Frequency')
+```
+
+c ii
+```{r}
+sen_bing <-inner_join(tidy_text, get_sentiments("bing"), 
+                       by=c("token" = "word"))
+
+sen_bing %>% group_by(sentiment, token) %>% count(sort = T) %>% slice(1:15)
+
+sen_bing_n <- sen_bing %>% count(sentiment, token,sort = T) %>%  arrange(desc(n)) %>% group_by(sentiment)%>% top_n(15)
+
+sen_bing_n_pos <- sen_bing %>% filter(sentiment == 'positive') %>% count(sentiment, token,sort = T) %>%  arrange(desc(n)) %>% top_n(15)
+
+sen_bing_n_neg <- sen_bing %>% filter(sentiment == 'negative') %>% count(sentiment, token,sort = T) %>%  arrange(desc(n)) %>% top_n(15)
+
+pos <- ggplot(sen_bing_n_pos)+
+  geom_col(aes(x = reorder(token,n), y = n),fill = 'skyblue')+
+  coord_flip()+
+  xlab('Token')+
+  ylab('Count')+
+  labs(title = 'Postive Token Frequency')
+
+neg <- ggplot(sen_bing_n_neg)+
+  geom_col(aes(x = reorder(token,n), y = n),fill ='tomato')+
+  coord_flip()+
+  xlab('Token')+
+  ylab('Count')+
+  labs(title = 'Negative Token Frequency')
+
+plot_grid(pos, neg, labels = "AUTO")
+
+```
+
+c iii
+Apparently, clients value their time and personal belongs so they don't like any delay of their flights as well as the lost of broken of their package. There is no ovbious clue on what customers likes as most positive tokens only express the emotions. 
+
+
+
+2d
+```{r pressure, echo=FALSE}
+tweet <- lat_lng(mentions)
+par(mar = c(0, 0, 0, 0))
+maps::map("state", lwd = .25)
+with(tweet, points(lng, lat, pch = 20, cex = .75, col = rgb(0, .3, .7, .75)))
+  
+```
+
+## Q3
+
+3.a
+```{r}
+summary(mentions$delta_reply_favorite_count)
+```
+The average, median and maximum of the favorites for dealta's replies number is 0.28, 0, and 26
+
+3.b
+```{r}
+mean(mentions$delta_responded)
+```
+The response rates of Dealta is 29.0%
+
+3.c
+```{r}
+mentions %>% mutate(response_time = (as.numeric(delta_reply_created_at - created_at)/60)) %>% summarise(avg_min = mean(response_time,na.rm = T),median_min = median(response_time,na.rm = T),max_min = max(response_time,na.rm = T))
+
+```
+
+The average time for Delta to response is 7.54 minutes. 
+median time for Delta to response is 4.58 minutes.
+max time for Delta to response is 76.1 minutes.
+
+
+3.d
+Reply favorite count
+benefit: Reply favorite count can measure the reply quality. We could know whether the public are satisfied with our response.
+limitation: As most people don't engage, data is limited and biased. 
+
+Response rate
+Benefit: It measures generally how many people get our services. 
+Limitation: we don’t know the response content quality at all.
+
+Response Time
+Benefit: It can measure the efficiency of our service. 
+Limitation:  same as the response rate, we have no clue on the quality of the response content. 
+
+
+
+##Q4
+
+a.i
+```{r}
+df <- mentions %>% select(followers_count,favorite_count,retweet_count,verified,delta_responded)
+df$verified <- as.integer(df$verified)
+df$delta_responded <- as.integer(df$delta_responded)
+df$delta_responded <- as.factor(df$delta_responded)
+
+mylogit <- glm(delta_responded ~ followers_count + favorite_count + retweet_count + verified, 
+               data = df, family = "binomial")
+summary(mylogit)
+
+```
+
+
+a.ii
+As the summary shows, followers count, favorite count, retweet_count all seems insigniciant to the response, while verified is the most significant factor contributing to the response among this 4 factors, which is  a little suprising to me as it shows negative relationhip with response. 
+
+regression model can only shows linear relationship, while the factors may not effect 
+
+b.i
+```{r}
+replies <- replies %>% mutate(tactic_dm=ifelse(grepl('DM|private message',text,ignore.case = T),1,0))
+mean(replies$tactic_dm )
+
+
+```
+32.94% of replies contain DM or private message. 
+
+b.ii
+1.Delta don't want negative emotion spread among the public hence they prefer the private message. 
+2.Delta don’t want followers know more about their tailored solution and ride on the rules. For example, if they provide some free drink tickets for delayed customers. they will not happy that public know this. 
+3.Some information Delta required is related to personal information. Direct message could better protect customers’ privacy. 
+
+
+## Q5
+a
+```{r}
+replies$text <- gsub('http\\S+\\s*', '', replies$text)
+replies$employee <- with(replies,substr(text,nchar(text)-3,nchar(text)))
+replies$employee <- gsub(" ","",replies$employee)
+replies$employee <- gsub("*","",replies$employee,fixed = T)
+replies$employee <- gsub('\n',"",replies$employee)
+unique(replies$employee)
+length(unique(replies$employee))
+```
+76 emplyees in total
+
+5.b
+```{r}
+top5 <- replies %>% count(employee,sort = T) %>% top_n(5)
+sum(top5$n)/nrow(replies)
+```
+Top 5 employees contribute to  25.54% total replies. 
+
+
+5.c
+By knowing which employees reply which tweets. Delta can easily measure the KPI for employees. Also, it is to train employees in individual level. 
